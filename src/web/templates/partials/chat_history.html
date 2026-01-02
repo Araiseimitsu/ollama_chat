@@ -1,0 +1,25 @@
+{% for msg in messages %}
+<div class="flex w-full {{ 'justify-end' if msg.role == 'user' else 'justify-start' }} items-end space-x-2">
+    {% if msg.role != 'user' %}
+    <div
+        class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white shadow-sm mb-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                clip-rule="evenodd" />
+        </svg>
+    </div>
+    {% endif %}
+    <div
+        class="max-w-[80%] rounded-2xl px-5 py-3 shadow-sm backdrop-blur-sm text-sm md:text-base leading-relaxed whitespace-pre-wrap {{ 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-none' if msg.role == 'user' else 'bg-white/80 text-gray-800 border border-white/50 rounded-bl-none' }}">
+        {{ msg.content }}
+    </div>
+    {% if msg.role == 'user' %}
+    <div
+        class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 shadow-sm mb-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+        </svg>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
