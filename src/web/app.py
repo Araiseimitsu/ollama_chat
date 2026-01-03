@@ -64,11 +64,11 @@ async def read_root(
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(
     request: Request,
-    user_input: Annotated[str, Form()],
+    user_input: Annotated[str, Form()] = "",
     chat_session: ChatSession = Depends(get_chat_session),
     ollama_client: OllamaClient = Depends(get_ollama_client)
 ):
-    if not user_input.strip():
+    if not user_input or not user_input.strip():
         return HTMLResponse("")
 
     chat_session.add_user(user_input)
@@ -93,15 +93,13 @@ async def set_model(
 ):
     """モデルを変更する"""
     client = session_store["ollama_client"]
-    client.model = model_name
+    client.set_model(model_name)
     logging.info(f"Model changed to {model_name}")
     
     # モデル変更時はチャット履歴をリセットするか、継続するか選べるが、
     # 混乱を避けるため今回は継続する（会話コンテキストが新しいモデルに渡される）
     
-    return HTMLResponse(f"""
-        <span class="text-sm font-medium text-gray-700">{model_name}</span>
-    """)
+    return HTMLResponse(model_name)
 
 @app.get("/reset", response_class=HTMLResponse)
 async def reset_chat(request: Request):

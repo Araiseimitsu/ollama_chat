@@ -112,6 +112,7 @@
                         {% endfor %}
                     </select>
                 </form>
+                <span id="current-model-display" class="sr-only">{{ current_model }}</span>
             </div>
 
             <button hx-get="/reset" hx-target="#chat-messages" hx-swap="innerHTML"
