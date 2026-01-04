@@ -41,6 +41,10 @@ async def encode_images(files: Optional[List[UploadFile]]) -> List[Dict[str, str
 
     encoded_images: List[Dict[str, str]] = []
     for upload in files:
+        # ファイル名がない、または空のファイルはスキップ（フォームで画像を選択していない場合）
+        if not upload.filename:
+            continue
+
         if not upload.content_type or not upload.content_type.startswith("image/"):
             raise ValueError("画像ファイルのみ送信できます。")
 
@@ -118,8 +122,13 @@ async def chat(
     chat_session.add_user(user_input, images=image_payloads if image_payloads else None)
 
     try:
+        # 現在のモデルが画像をサポートするかどうかを確認
+        supports_images = ollama_client.supports_images()
         # Ollama API を使用（thinking自動抽出）
-        thinking, reply = ollama_client.chat(chat_session.ollama_messages(), stream=False)
+        thinking, reply = ollama_client.chat(
+            chat_session.ollama_messages(supports_images=supports_images if supports_images is not None else True),
+            stream=False
+        )
         chat_session.add_assistant(reply, thinking=thinking)
 
         if thinking:
@@ -181,8 +190,12 @@ async def chat_stream(
         try:
             thinking_buffer = []
             response_buffer = []
+            # 現在のモデルが画像をサポートするかどうかを確認
+            supports_images = ollama_client.supports_images()
 
-            for chunk in ollama_client.chat_stream(chat_session.ollama_messages()):
+            for chunk in ollama_client.chat_stream(
+                chat_session.ollama_messages(supports_images=supports_images if supports_images is not None else True)
+            ):
                 chunk_type = chunk.get("type")
                 content = chunk.get("content", "")
 

@@ -30,10 +30,14 @@ class ChatSession:
             message["thinking"] = thinking
         self._messages.append(message)
 
-    def ollama_messages(self) -> List[Dict[str, Any]]:
+    def ollama_messages(self, supports_images: bool = True) -> List[Dict[str, Any]]:
         """
         Ollama API 用に整形したメッセージを返す。
         画像は base64 文字列の配列へ変換し、thinking などの表示用キーは除外する。
+
+        Args:
+            supports_images: モデルが画像をサポートしているかどうか。
+                             Falseの場合は画像データを除外する。
         """
         normalized: List[Dict[str, Any]] = []
         for message in self._messages:
@@ -41,7 +45,8 @@ class ChatSession:
             content = message.get("content", "")
             payload: Dict[str, Any] = {"role": role, "content": content}
 
-            if role == "user" and message.get("images"):
+            # 画像対応モデルの場合のみ画像を含める
+            if supports_images and role == "user" and message.get("images"):
                 images = message.get("images", [])
                 payload["images"] = [
                     image.get("data") if isinstance(image, dict) else image
