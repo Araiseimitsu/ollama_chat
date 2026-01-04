@@ -12,69 +12,8 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='/img/logo.svg') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            /* 背景スクロール防止 */
-        }
-
-        /* カスタムスクロールバー */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        /* Glassmorphism Background Animation */
-        .blob {
-            position: absolute;
-            filter: blur(40px);
-            z-index: -1;
-            opacity: 0.6;
-            animation: move 10s infinite alternate;
-        }
-
-        @keyframes move {
-            from {
-                transform: translate(0, 0) scale(1);
-            }
-
-            to {
-                transform: translate(20px, -20px) scale(1.1);
-            }
-        }
-
-        /* htmx-indicator関連の制御 */
-        .htmx-request .submit-icon {
-            display: none;
-        }
-
-        .htmx-request .loading-spinner {
-            display: flex;
-        }
-
-        .loading-spinner {
-            display: none;
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=5">
 </head>
 
 <body class="bg-gray-100 text-gray-800">
@@ -107,8 +46,7 @@
                         class="bg-white/50 border border-white/40 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 backdrop-blur-sm cursor-pointer hover:bg-white/70 transition-colors"
                         onchange="this.form.requestSubmit()">
                         {% for model in models %}
-                        <option value="{{ model }}" {% if model==current_model %}selected{% endif %}>{{ model }}
-                        </option>
+                        <option value="{{ model }}" {% if model==current_model %}selected{% endif %}>{{ model }}</option>
                         {% endfor %}
                     </select>
                 </form>
@@ -137,101 +75,56 @@
                 hx-on::before-request: リクエスト送信前に実行されるイベント。ここで楽観的にDOMを追加し、フォームをクリアする。
             -->
             <form id="chat-form" hx-post="/chat" hx-target="#chat-messages" hx-swap="innerHTML"
-                hx-indicator="#submit-btn" class="relative flex items-center gap-2">
+                hx-indicator="#submit-btn" hx-encoding="multipart/form-data" enctype="multipart/form-data"
+                class="flex items-start gap-2">
 
-                <input type="text" id="user-input" name="user_input" placeholder="メッセージを入力..."
-                    class="w-full bg-white/60 border border-white/50 rounded-full py-3 px-5 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent placeholder-gray-500 text-gray-800 shadow-inner backdrop-blur-sm transition-all"
-                    autocomplete="off" autofocus required>
+                <div class="flex flex-col flex-1 gap-2">
+                    <div id="image-preview" class="image-preview is-hidden"></div>
 
-                <button type="submit" id="submit-btn"
-                    class="absolute right-2 p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transform transition-all active:scale-95 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed w-9 h-9">
-                    <!-- 通常時のアイコン -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 submit-icon" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    <!-- ローディング時のスピナー -->
-                    <span class="loading-spinner absolute inset-0 items-center justify-center">
-                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                            </circle>
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                            </path>
+                    <div class="relative">
+                        <textarea id="user-input" name="user_input" placeholder="メッセージを入力..."
+                            class="w-full bg-white/60 border border-white/50 rounded-3xl py-3 px-5 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent placeholder-gray-500 text-gray-800 shadow-inner backdrop-blur-sm transition-all"
+                            autocomplete="off" autofocus rows="1"></textarea>
+
+                        <button type="submit" id="submit-btn"
+                            class="absolute right-2 top-2 p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transform transition-all active:scale-95 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed w-9 h-9">
+                            <!-- 通常時のアイコン -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 submit-icon" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            <!-- ローディング時のスピナー -->
+                            <span class="loading-spinner absolute inset-0 items-center justify-center">
+                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                    viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                                    </circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center gap-2 pt-1">
+                    <button type="button" id="image-picker" class="image-picker" title="画像を添付">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V7.828a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0012.172 2H4zm8 1.414L16.586 9H13a1 1 0 01-1-1V4.414zM4 13l2.5-2.5 2 2 3.5-3.5L16 13H4z" clip-rule="evenodd" />
                         </svg>
-                    </span>
-                </button>
+                    </button>
+                    <button type="button" id="image-clear" class="image-clear is-hidden" title="添付をクリア">クリア</button>
+                </div>
+
+                <input id="image-input" name="images" type="file" accept="image/*" multiple class="sr-only">
             </form>
         </div>
     </div>
 
-    <script>
-        const chatContainer = document.getElementById('chat-messages');
-        const form = document.getElementById('chat-form');
-        const input = document.getElementById('user-input');
-
-        function scrollToBottom() {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // htmxのリクエスト開始前イベントをキャッチ
-        form.addEventListener('htmx:beforeRequest', function (evt) {
-            const message = input.value.trim();
-            if (!message) return;
-
-            // ユーザーメッセージのHTMLテンプレート（partials/chat_history.htmlと同じ構造）
-            const userMsgHtml = `
-                <div class="flex w-full justify-end items-end space-x-2">
-                    <div class="max-w-[80%] rounded-2xl px-5 py-3 shadow-sm backdrop-blur-sm text-sm md:text-base leading-relaxed whitespace-pre-wrap bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-none">
-                        ${escapeHtml(message)}
-                    </div>
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 shadow-sm mb-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                </div>
-            `;
-
-            // DOMに直接追加（楽観的UI）
-            chatContainer.insertAdjacentHTML('beforeend', userMsgHtml);
-            scrollToBottom();
-
-            // 入力をクリア (htmxがリクエストを送る前に入力を消すと空で送られるので、
-            // htmxはデフォルトでformの現在の値を取得する。ここではタイミング的に
-            // afterRequestではなくbeforeRequestで値を保持しておき、
-            // 実際にはsubmit直後に消したいが、htmxがpayloadを作るのを邪魔しないように注意が必要。
-            // htmx:beforeRequestの時点ではまだpayload生成前かもしれないが、
-            // valuesを取得するのはsubmit時。
-            // 確実なのは、少し遅延させるか、htmx:configRequestを使う。
-            // 今回はシンプルに、formのsubmitとhtmxの処理が競合しないよう、
-            // input.valueのクリアは遅延させる。
-            setTimeout(() => {
-                input.value = '';
-            }, 10);
-        });
-
-        // サーバーからの応答後にスクロール
-        form.addEventListener('htmx:afterOnLoad', function (evt) {
-            scrollToBottom();
-        });
-
-        // HTMLエスケープ関数（簡易版）
-        function escapeHtml(text) {
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        // MutationObserverを使って初期ロード時などの追加にも反応
-        const observer = new MutationObserver(scrollToBottom);
-        observer.observe(chatContainer, { childList: true, subtree: true });
-    </script>
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', path='/js/main.js') }}?v=5"></script>
 </body>
 
 </html>
