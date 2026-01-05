@@ -66,10 +66,13 @@ function setLoading(isLoading) {
         form.classList.remove('is-loading');
     }
     input.disabled = isLoading;
-    submitBtn.disabled = isLoading;
+    submitBtn.disabled = false;
     if (imageInput) imageInput.disabled = isLoading;
     if (imagePicker) imagePicker.disabled = isLoading;
     if (imageClear) imageClear.disabled = isLoading;
+    if (submitBtn) {
+        submitBtn.setAttribute('aria-label', isLoading ? '停止' : '送信');
+    }
 }
 
 function buildImagePreviewHtml(imageUrls) {
@@ -189,6 +192,12 @@ function createAssistantMessage() {
     };
 }
 
+function getLastLines(text, lineCount) {
+    if (!text) return '';
+    const lines = text.split(/\r?\n/);
+    return lines.slice(Math.max(lines.length - lineCount, 0)).join('\n');
+}
+
 async function streamChat(formData) {
     if (activeStreamController) {
         activeStreamController.abort();
@@ -220,7 +229,8 @@ async function streamChat(formData) {
         thinkingContainer.classList.remove('is-hidden');
         thinkingToggle.classList.add('thinking-live');
         thinkingLabel.textContent = '思考中';
-        thinkingContent.textContent = thinkingText;
+        thinkingContent.classList.add('thinking-live-preview');
+        thinkingContent.textContent = getLastLines(thinkingText, 3);
         scheduleScroll();
     };
 
@@ -229,10 +239,13 @@ async function streamChat(formData) {
         if (thinkingText) {
             thinkingToggle.classList.remove('thinking-live');
             thinkingLabel.textContent = '思考過程を表示';
+            thinkingContent.classList.remove('thinking-live-preview');
+            thinkingContent.textContent = thinkingText;
         } else {
             thinkingContainer.classList.add('is-hidden');
         }
         scheduleScroll();
+        input.focus();
     };
 
     const handlePayload = (payload) => {
@@ -341,6 +354,7 @@ function handleStreamingSubmit(evt) {
     setTimeout(() => {
         input.value = '';
         autoResizeTextarea();
+        input.focus();
     }, 10);
 
     const formData = new FormData(form);
@@ -351,6 +365,18 @@ function handleStreamingSubmit(evt) {
 
 if (USE_STREAMING) {
     form.addEventListener('submit', handleStreamingSubmit, true);
+}
+
+if (submitBtn) {
+    submitBtn.addEventListener('click', (evt) => {
+        if (!USE_STREAMING) return;
+        if (!form.classList.contains('is-loading')) return;
+        evt.preventDefault();
+        evt.stopPropagation();
+        if (activeStreamController) {
+            activeStreamController.abort();
+        }
+    });
 }
 
 // htmxのリクエスト開始前イベントをキャッチ

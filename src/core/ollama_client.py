@@ -1,7 +1,7 @@
 import logging
 import re
 import json
-from typing import List, Dict, Tuple, Optional, Generator, Any
+from typing import List, Dict, Tuple, Optional, Generator, Any, Callable
 
 import requests
 
@@ -176,7 +176,11 @@ class OllamaClient:
         # thinkタグがない場合は通常の応答として扱う
         return None, content
 
-    def chat_stream(self, messages: List[Dict[str, Any]]) -> Generator[Dict[str, str], None, None]:
+    def chat_stream(
+        self,
+        messages: List[Dict[str, Any]],
+        should_stop: Optional[Callable[[], bool]] = None
+    ) -> Generator[Dict[str, str], None, None]:
         """
         チャットをストリーミング実行してthinkingと回答を逐次返す
 
@@ -192,6 +196,7 @@ class OllamaClient:
         }
         logging.debug("POST %s payload=%s (streaming)", url, payload)
 
+        response: Optional[requests.Response] = None
         try:
             response = self._session.post(
                 url,
@@ -209,6 +214,9 @@ class OllamaClient:
             accumulated_buffer = ""
 
             for line in response.iter_lines():
+                if should_stop and should_stop():
+                    logging.info("Streaming stopped by caller request.")
+                    break
                 if not line:
                     continue
 
@@ -277,6 +285,9 @@ class OllamaClient:
         except Exception as e:
             logging.error(f"Streaming error: {e}")
             raise e
+        finally:
+            if response is not None:
+                response.close()
 
     def list_models(self) -> List[str]:
         url = f"{self.host}/api/tags"

@@ -148,6 +148,7 @@ async def chat(
 
 @app.post("/chat/stream")
 async def chat_stream(
+    request: Request,
     user_input: Annotated[str, Form()] = "",
     images: Annotated[Optional[List[UploadFile]], File()] = None,
     chat_session: ChatSession = Depends(get_chat_session),
@@ -190,12 +191,19 @@ async def chat_stream(
         try:
             thinking_buffer = []
             response_buffer = []
+            disconnected = False
             # 現在のモデルが画像をサポートするかどうかを確認
             supports_images = ollama_client.supports_images()
 
             for chunk in ollama_client.chat_stream(
-                chat_session.ollama_messages(supports_images=supports_images if supports_images is not None else True)
+                chat_session.ollama_messages(supports_images=supports_images if supports_images is not None else True),
+                should_stop=lambda: disconnected
             ):
+                if await request.is_disconnected():
+                    disconnected = True
+                    logging.info("Client disconnected. Stopping streaming.")
+                    break
+
                 chunk_type = chunk.get("type")
                 content = chunk.get("content", "")
 
@@ -207,6 +215,9 @@ async def chat_stream(
                 # SSE形式でデータを送信
                 event_data = json.dumps(chunk, ensure_ascii=False)
                 yield f"data: {event_data}\n\n"
+
+            if disconnected:
+                return
 
             # ストリーミング完了後、セッションに保存
             thinking_text = "".join(thinking_buffer) if thinking_buffer else None
